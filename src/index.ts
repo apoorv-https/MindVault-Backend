@@ -18,6 +18,24 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// ROOT ROUTE - For testing deployment
+app.get("/", (req, res) => {
+    res.json({ 
+        message: "MindVault API is running!",
+        version: "1.0.0",
+        status: "active",
+        endpoints: [
+            "POST /api/v1/signup",
+            "POST /api/v1/signin",
+            "POST /api/v1/content",
+            "GET /api/v1/content",
+            "DELETE /api/v1/content",
+            "GET /api/v1/search",
+            "POST /api/v1/brain/share",
+            "GET /api/v1/brain/:shareLink"
+        ]
+    });
+});
 
 // FOR SIGNUP
 app.post("/api/v1/signup", async (req, res) => {
@@ -65,9 +83,6 @@ app.post("/api/v1/signup", async (req, res) => {
     }
 });
 
-
-
-
 // FOR SIGNIN
 app.post("/api/v1/signin", async (req, res) => {
     const username = req.body.username;
@@ -104,7 +119,6 @@ app.post("/api/v1/signin", async (req, res) => {
         });
     }
 });
-
 
 // FOR ADDING CONTNET
 app.post("/api/v1/content", userMiddleware, async (req, res) => {
@@ -159,9 +173,7 @@ app.post("/api/v1/content", userMiddleware, async (req, res) => {
     }
 });
 
-
 // FOR GETTING CONTENT
-
 app.get("/api/v1/content", userMiddleware, async(req, res) => {
     //@ts-ignore
     const userId = req.userId;
@@ -180,7 +192,6 @@ app.get("/api/v1/content", userMiddleware, async(req, res) => {
         });
     }
 });
-
 
 // FOR DELETING CONTENT
 app.delete("/api/v1/content", userMiddleware, async (req, res) => {
@@ -204,22 +215,18 @@ app.delete("/api/v1/content", userMiddleware, async (req, res) => {
     }
 });
 
-
 // FOR SEARCHING
-
 app.get("/api/v1/search", userMiddleware, async (req, res) => {
     try {
         const query = req.query.q as string;
-        const userThreshold =0.75;
+        const userThreshold = 0.75;
       
-        
         if (!query || query.trim().length === 0) {
             return res.status(400).json({ 
                 error: "Search query is required" 
             });
         }
 
-       
         const queryEmbedding = await getEmbedding(query);
 
         // Get MORE candidates to filter from
@@ -253,8 +260,6 @@ app.get("/api/v1/search", userMiddleware, async (req, res) => {
             .sort((a, b) => b.score - a.score) // Highest score first
             .slice(0, 10); // Top 10
 
-        
-
         res.json({ 
             query,
             threshold: userThreshold,
@@ -264,14 +269,12 @@ app.get("/api/v1/search", userMiddleware, async (req, res) => {
         });
 
     } catch (error: any) {
-      
         res.status(500).json({ 
             error: "Search failed",
             message: error.message 
         });
     }
 });
-
 
 // SHARE ENDPOINT
 app.post("/api/v1/brain/share", userMiddleware, async(req, res) => {
@@ -309,9 +312,7 @@ app.post("/api/v1/brain/share", userMiddleware, async(req, res) => {
     }
 });
 
-
 // SHARE LINK ENDPOINT
-
 app.get("/api/v1/brain/:shareLink", async (req, res) => {
     const hash = req.params.shareLink;
     const link = await link_model.findOne({
@@ -344,7 +345,12 @@ app.get("/api/v1/brain/:shareLink", async (req, res) => {
     });
 });
 
-app.listen(3000)
-// app.listen(3000, () => {
-//     console.log("✅ Server running on port 3000");
-// });
+// For local development only
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(3000, () => {
+        console.log("✅ Server running on port 3000");
+    });
+}
+
+// CRITICAL: Export for Vercel
+export default app;
