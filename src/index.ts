@@ -17,40 +17,18 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// MongoDB connection state
-let isConnected = false;
+// Simple MongoDB connection
+mongoose.connect(config.mongoUrl, {
+    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+})
+.then(() => console.log("✅ MongoDB Connected"))
+.catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
-const connectDB = async () => {
-    if (isConnected) {
-        console.log("Using existing MongoDB connection");
-        return;
-    }
-    
-    try {
-        const db = await mongoose.connect(config.mongoUrl);
-        isConnected = db.connection.readyState === 1;
-        console.log("✅ MongoDB Connected");
-    } catch (err) {
-        console.error("❌ MongoDB Connection Error:", err);
-        isConnected = false;
-        throw err;
-    }
-};
+// Remove the connection middleware - let mongoose handle it
+// DELETE THIS ENTIRE BLOCK:
+// app.use(async (req, res, next) => { ... });
 
-// Middleware to ensure connection before each request
-app.use(async (req, res, next) => {
-    try {
-        await connectDB();
-        next();
-    } catch (error) {
-        res.status(500).json({ 
-            message: "Database connection failed",
-            error: "Could not connect to MongoDB"
-        });
-    }
-});
-
-// ROOT ROUTE - For testing deployment
+// ROOT ROUTE
 app.get("/", (req, res) => {
     res.json({ 
         message: "MindVault API is running!",
@@ -109,11 +87,14 @@ app.post("/api/v1/signup", async (req, res) => {
             message: "Sign-up Successfully"
         });
     } catch (e) {
+        console.error("Signup error:", e);
         return res.status(403).json({
             message: "User Already Exists"
         });
     }
 });
+
+// ... rest of your routes (signin, content, etc.) stay the same ...
 
 // FOR SIGNIN
 app.post("/api/v1/signin", async (req, res) => {
@@ -189,9 +170,7 @@ app.post("/api/v1/content", userMiddleware, async (req, res) => {
                 );
             })
             .catch((error) => {
-                return res.status(404).json({
-                    message: "Embedding failed:"
-                });
+                console.error("Embedding error:", error);
             });
 
     } catch (e) {
@@ -372,11 +351,13 @@ app.get("/api/v1/brain/:shareLink", async (req, res) => {
     });
 });
 
-// Start server
+// Start server (local only)
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT}`);
-});
+if (process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+        console.log(`✅ Server running on port ${PORT}`);
+    });
+}
 
 // Export for Vercel
 export default app;
