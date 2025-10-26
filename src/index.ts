@@ -350,7 +350,11 @@ app.get("/api/v1/brain/:shareLink", async (req, res) => {
 });
 
 // For local development only
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(3000, () => {
+        console.log("✅ Server running on port 3000");
+    });
+}
+
+// CRITICAL: Export for Vercel
+export default app;
