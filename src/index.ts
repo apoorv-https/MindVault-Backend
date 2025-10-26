@@ -13,8 +13,12 @@ import { userMiddleware } from "./middleware";
 import { genrate_hash } from "./hash_func";
 import { getEmbedding } from "./utils/embedding";
 
-const app = express();
+// ADD THIS - MongoDB Connection
+mongoose.connect(config.mongoUrl)
+    .then(() => console.log("✅ MongoDB Connected"))
+    .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
+const app = express();
 app.use(express.json());
 app.use(cors());
 
